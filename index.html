@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f3f6f1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="轻跑" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content="轻跑，一款专注记录跑步的手机应用。" />
+    <title>轻跑</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="i-route" viewBox="0 0 24 24">
+        <circle cx="6" cy="19" r="2"></circle>
+        <circle cx="18" cy="5" r="2"></circle>
+        <path d="M8 19h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16"></path>
+      </symbol>
+      <symbol id="i-history" viewBox="0 0 24 24">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+        <path d="M3 3v5h5"></path>
+        <path d="M12 7v5l3 2"></path>
+      </symbol>
+      <symbol id="i-play" viewBox="0 0 24 24">
+        <path d="m8 5 11 7-11 7V5Z"></path>
+      </symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24">
+        <rect x="7" y="5" width="3.5" height="14" rx="1"></rect>
+        <rect x="14" y="5" width="3.5" height="14" rx="1"></rect>
+      </symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24">
+        <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+      </symbol>
+      <symbol id="i-arrow-left" viewBox="0 0 24 24">
+        <path d="m15 18-6-6 6-6"></path>
+      </symbol>
+      <symbol id="i-map-pin" viewBox="0 0 24 24">
+        <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path>
+        <circle cx="12" cy="10" r="2.5"></circle>
+      </symbol>
+      <symbol id="i-navigation" viewBox="0 0 24 24">
+        <path d="m3 11 18-8-8 18-2-8-8-2Z"></path>
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7v5l3 2"></path>
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7v6"></path>
+        <path d="M12 17h.01"></path>
+      </symbol>
+      <symbol id="i-signal" viewBox="0 0 24 24">
+        <path d="M5 18a10 10 0 0 1 14 0"></path>
+        <path d="M8 15a6 6 0 0 1 8 0"></path>
+        <path d="M11 12a2 2 0 0 1 2 0"></path>
+        <circle cx="12" cy="19" r=".5"></circle>
+      </symbol>
+    </svg>
+
+    <div class="app-shell">
+      <header class="topbar" id="topbar">
+        <div class="brand" aria-label="轻跑">
+          <span class="brand-mark" aria-hidden="true">
+            <svg class="icon"><use href="#i-route"></use></svg>
+          </span>
+          <span class="brand-name">轻跑</span>
+        </div>
+        <span class="today" id="today-label"></span>
+      </header>
+
+      <main id="main-content">
+        <section class="view is-active" id="home-view" data-view="home" aria-labelledby="home-title">
+          <div class="page-intro">
+            <p class="eyebrow">今天</p>
+            <h1 id="home-title">去跑一段。</h1>
+          </div>
+
+          <section class="week-band" aria-labelledby="week-label">
+            <div class="band-heading">
+              <h2 id="week-label">本周</h2>
+              <span id="week-range"></span>
+            </div>
+            <div class="week-distance">
+              <span class="stat-number" id="week-distance">0.00</span>
+              <span class="stat-unit">km</span>
+            </div>
+            <div class="week-meta">
+              <div>
+                <span class="meta-label">次数</span>
+                <strong id="week-count">0</strong>
+              </div>
+              <div>
+                <span class="meta-label">时长</span>
+                <strong id="week-duration">0 分</strong>
+              </div>
+              <div>
+                <span class="meta-label">平均配速</span>
+                <strong id="week-pace">--'--"</strong>
+              </div>
+            </div>
+          </section>
+
+          <button class="start-button" id="start-run-button" type="button">
+            <span class="start-icon">
+              <svg class="icon"><use href="#i-play"></use></svg>
+            </span>
+            <span>
+              <strong>开始跑步</strong>
+              <small>GPS 定位记录</small>
+            </span>
+          </button>
+
+          <section class="recent-section" aria-labelledby="recent-title">
+            <div class="section-heading">
+              <h2 id="recent-title">最近跑步</h2>
+              <button class="text-button" type="button" data-go-history>全部记录</button>
+            </div>
+            <div id="latest-run"></div>
+          </section>
+        </section>
+
+        <section class="view" id="history-view" data-view="history" aria-labelledby="history-title">
+          <div class="page-intro history-intro">
+            <p class="eyebrow">记录</p>
+            <h1 id="history-title">跑步历史</h1>
+          </div>
+          <section class="history-summary" aria-label="历史统计">
+            <div>
+              <span>累计距离</span>
+              <strong id="total-distance">0.00 km</strong>
+            </div>
+            <div>
+              <span>累计次数</span>
+              <strong id="total-count">0 次</strong>
+            </div>
+          </section>
+          <div id="history-list" class="history-list"></div>
+        </section>
+
+        <section class="view" id="record-view" data-view="record" aria-labelledby="record-title">
+          <button class="back-button" id="record-back-button" type="button">
+            <svg class="icon"><use href="#i-arrow-left"></use></svg>
+            <span>返回</span>
+          </button>
+          <div class="record-heading">
+            <p class="eyebrow" id="record-date"></p>
+            <h1 id="record-title">跑步记录</h1>
+          </div>
+          <section class="record-distance-block">
+            <span class="record-distance" id="record-distance">0.00</span>
+            <span class="stat-unit">km</span>
+          </section>
+          <section class="route-panel" aria-label="跑步路线">
+            <div class="route-canvas" id="record-route"></div>
+          </section>
+          <div class="record-stats">
+            <div>
+              <svg class="icon"><use href="#i-clock"></use></svg>
+              <span>跑步时长</span>
+              <strong id="record-duration">00:00</strong>
+            </div>
+            <div>
+              <svg class="icon"><use href="#i-navigation"></use></svg>
+              <span>平均配速</span>
+              <strong id="record-pace">--'--"</strong>
+            </div>
+          </div>
+          <p class="record-note" id="record-note"></p>
+        </section>
+      </main>
+
+      <nav class="tabbar" id="tabbar" aria-label="主导航">
+        <button class="tab is-active" type="button" data-tab="home" aria-current="page">
+          <svg class="icon"><use href="#i-route"></use></svg>
+          <span>跑步</span>
+        </button>
+        <button class="tab" type="button" data-tab="history">
+          <svg class="icon"><use href="#i-history"></use></svg>
+          <span>历史</span>
+        </button>
+      </nav>
+    </div>
+
+    <section class="run-screen" id="run-view" aria-labelledby="run-title" hidden>
+      <header class="run-header">
+        <div>
+          <p class="eyebrow" id="run-kicker">准备出发</p>
+          <h1 id="run-title">跑步中</h1>
+        </div>
+        <div class="gps-badge" id="gps-badge">
+          <span class="status-dot"></span>
+          <span id="gps-label">正在定位</span>
+        </div>
+      </header>
+
+      <div class="run-reading">
+        <p class="run-label">距离</p>
+        <div class="run-distance-line">
+          <span id="live-distance">0.00</span>
+          <small>km</small>
+        </div>
+      </div>
+
+      <div class="live-grid">
+        <div>
+          <span class="meta-label">时长</span>
+          <strong id="live-duration">00:00</strong>
+        </div>
+        <div>
+          <span class="meta-label">平均配速</span>
+          <strong id="live-pace">--'--"</strong>
+        </div>
+      </div>
+
+      <div class="signal-message" id="signal-message" role="status">
+        <span class="signal-symbol">
+          <svg class="icon"><use href="#i-signal"></use></svg>
+        </span>
+        <p id="signal-text">正在获取准确位置，请稍候。</p>
+      </div>
+
+      <div class="live-route" id="live-route" aria-label="当前路线"></div>
+
+      <div class="run-controls">
+        <button class="control-button control-secondary" id="pause-button" type="button" disabled>
+          <svg class="icon"><use href="#i-pause"></use></svg>
+          <span>暂停</span>
+        </button>
+        <button class="control-button control-danger" id="end-button" type="button" disabled>
+          <svg class="icon"><use href="#i-stop"></use></svg>
+          <span>结束</span>
+        </button>
+      </div>
+    </section>
+
+    <dialog class="app-dialog" id="app-dialog">
+      <div class="dialog-content">
+        <span class="dialog-icon" id="dialog-icon">
+          <svg class="icon"><use href="#i-alert"></use></svg>
+        </span>
+        <h2 id="dialog-title">提示</h2>
+        <p id="dialog-message"></p>
+        <div class="dialog-actions" id="dialog-actions"></div>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <noscript>
+      <div class="noscript">请开启 JavaScript 后使用轻跑。</div>
+    </noscript>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

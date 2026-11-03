@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>轻跑测试</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 40px 24px;
+        background: #f3f6f1;
+        color: #17231c;
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      #summary {
+        padding: 18px;
+        border-radius: 8px;
+        background: #e8f5ed;
+        font-weight: 700;
+      }
+
+      #summary.failure {
+        background: #fff0eb;
+        color: #be3d2a;
+      }
+
+      ul {
+        padding: 0;
+        list-style: none;
+      }
+
+      li {
+        margin: 8px 0;
+        padding: 13px 16px;
+        border: 1px solid #dce4dd;
+        border-radius: 8px;
+        background: #fbfcfa;
+      }
+
+      .pass {
+        color: #18784d;
+      }
+
+      .fail {
+        color: #be3d2a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>轻跑测试</h1>
+    <div id="summary">正在运行...</div>
+    <ul id="results"></ul>
+    <script type="module" src="./tests.js"></script>
+  </body>
+</html>
