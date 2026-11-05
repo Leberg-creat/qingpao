@@ -10,6 +10,22 @@ import {
   weeklyStats,
 } from "./geo.js";
 import { openDatabase } from "./db.js";
+import {
+  buildKilometerSplits,
+  buildWeeklyBuckets,
+  consecutiveCompletedWeeks,
+  goalProgress,
+  groupRunsByMonth,
+  personalRecords,
+  rollingPaceSeconds,
+} from "./analytics.js";
+import {
+  createBackup,
+  mergeBackupRuns,
+  normalizeRunRecord,
+  parseBackup,
+} from "./data-model.js";
+import { renderSplitChart, renderWeeklyChart } from "./charts.js";
 import { projectRoute, renderRouteSvg } from "./route-view.js";
 
 const results = [];
@@ -35,6 +51,22 @@ function point(latitude, longitude, seconds, accuracyMeters = 5) {
     longitude,
     accuracyMeters,
     timestamp: 1_700_000_000_000 + seconds * 1000,
+  };
+}
+
+function makeRun(id, startedAt, overrides = {}) {
+  return {
+    id,
+    startedAt,
+    endedAt: startedAt + 1_800_000,
+    durationSeconds: 1800,
+    distanceMeters: 5000,
+    avgPaceSecondsPerKm: 360,
+    route: [],
+    splits: [],
+    schemaVersion: 2,
+    createdAt: startedAt,
+    ...overrides,
   };
 }
 
@@ -101,6 +133,104 @@ await test("周统计与累计统计", () => {
   assert(total.count === 3, "累计次数");
 });
 
+await test("双周目标进度", () => {
+  const progress = goalProgress(
+    { count: 2, distanceMeters: 3000, durationMilliseconds: 1_080_000 },
+    { weeklyDistanceGoalKm: 20, weeklyCountGoal: 3 },
+  );
+  assert(progress.distanceRatio === 0.15, "距离进度");
+  assertClose(progress.countRatio, 0.6667, 0.001, "次数进度");
+  assert(progress.remainingDistanceMeters === 17_000, "剩余距离");
+  assert(progress.remainingCount === 1, "剩余次数");
+  assert(!progress.complete, "双目标未完成");
+});
+
+await test("连续达标周与八周数据", () => {
+  const currentMonday = new Date(2026, 10, 2, 8, 0, 0).getTime();
+  const runs = [];
+  for (let week = 0; week < 2; week += 1) {
+    for (let runIndex = 0; runIndex < 3; runIndex += 1) {
+      runs.push(
+        makeRun(`streak-${week}-${runIndex}`, currentMonday - week * 7 * 86_400_000 + runIndex * 3_600_000, {
+          distanceMeters: 7000,
+        }),
+      );
+    }
+  }
+  const streak = consecutiveCompletedWeeks(
+    runs,
+    { weeklyDistanceGoalKm: 20, weeklyCountGoal: 3 },
+    new Date(2026, 10, 4, 12, 0, 0),
+  );
+  const buckets = buildWeeklyBuckets(runs, new Date(2026, 10, 4, 12, 0, 0), 8);
+  assert(streak === 2, "连续两周达标");
+  assert(buckets.length === 8, "应生成八周柱状数据");
+  assert(buckets.at(-1).distanceMeters === 21_000, "本周跑量");
+});
+
+await test("公里分段插值", () => {
+  const route = [];
+  for (let index = 0; index <= 10; index += 1) {
+    route.push({
+      latitude: 31.23 + index * 0.001,
+      longitude: 121.47,
+      accuracyMeters: 5,
+      timestamp: 1_700_000_000_000 + index * 30_000,
+      elapsedMilliseconds: index * 30_000,
+    });
+  }
+  const splits = buildKilometerSplits(route);
+  assert(splits.length >= 1, "应生成至少一公里分段");
+  assertClose(splits[0].distanceMeters, 1000, 1, "首个完整公里");
+  assertClose(splits[0].paceSecondsPerKilometer, 269.8, 2, "分段配速");
+});
+
+await test("暂停断段与滚动配速", () => {
+  const route = [];
+  for (let index = 0; index <= 4; index += 1) {
+    route.push({
+      latitude: 31.23 + index * 0.0004,
+      longitude: 121.47,
+      accuracyMeters: 5,
+      timestamp: 1_700_000_000_000 + index * 10_000,
+      elapsedMilliseconds: index * 10_000,
+      ...(index === 3 ? { segmentStart: true } : {}),
+    });
+  }
+  const splits = buildKilometerSplits(route);
+  const rolling = rollingPaceSeconds(route);
+  assert(
+    splits.every((split) => split.distanceMeters < 999),
+    "断段前不足一公里不生成完整分段",
+  );
+  assertClose(rolling, 224.6, 2, "断段后只使用恢复后的配速窗口");
+});
+
+await test("个人纪录与月度分组", () => {
+  const base = new Date(2026, 10, 2, 8, 0, 0).getTime();
+  const runs = [
+    makeRun("r1", base, { distanceMeters: 3000, avgPaceSecondsPerKm: 420 }),
+    makeRun("r2", base + 86_400_000, {
+      distanceMeters: 6200,
+      avgPaceSecondsPerKm: 350,
+      splits: [
+        {
+          index: 1,
+          distanceMeters: 1000,
+          durationSeconds: 330,
+          paceSecondsPerKilometer: 330,
+        },
+      ],
+    }),
+  ];
+  const records = personalRecords(runs);
+  const groups = groupRunsByMonth(runs);
+  assert(records.longest.value === 6200, "最远距离");
+  assert(records.bestAveragePace.value === 350, "最佳平均配速");
+  assert(records.fastestKilometer.value === 330, "最快公里");
+  assert(groups.length === 1 && groups[0].count === 2, "月度分组");
+});
+
 await test("路线投影按时间断点分段", () => {
   const route = [
     point(31.23, 121.47, 0),
@@ -128,11 +258,67 @@ await test("IndexedDB 数据结构", async () => {
   const database = await openDatabase();
   assert(database.objectStoreNames.contains("runs"), "应包含 runs");
   assert(database.objectStoreNames.contains("active"), "应包含 active");
+  assert(database.objectStoreNames.contains("settings"), "应包含 settings");
   const transaction = database.transaction("runs", "readonly");
   assert(
     transaction.objectStore("runs").indexNames.contains("startedAt"),
     "应包含 startedAt 索引",
   );
+});
+
+await test("旧记录兼容与备份合并", () => {
+  const oldRun = normalizeRunRecord({
+    id: "legacy",
+    startedAt: 1_700_000_000_000,
+    durationSeconds: 600,
+    distanceMeters: 2000,
+    route: [],
+  });
+  assert(oldRun && oldRun.schemaVersion === 1, "旧记录应补全版本");
+  const backup = createBackup(
+    [makeRun("same", 1_700_000_000_000), makeRun("new", 1_700_100_000_000)],
+    { weeklyDistanceGoalKm: 25, weeklyCountGoal: 4 },
+  );
+  const parsed = parseBackup(JSON.stringify(backup));
+  const merged = mergeBackupRuns(parsed, [makeRun("same", 1_700_000_000_000)]);
+  assert(parsed.settings.weeklyDistanceGoalKm === 25, "备份目标");
+  assert(merged.newRuns.length === 1, "只新增不同 ID");
+  assert(merged.duplicateCount === 1, "重复记录应跳过");
+});
+
+await test("损坏备份拒绝", () => {
+  let rejected = false;
+  try {
+    parseBackup('{"not":"a backup"}');
+  } catch {
+    rejected = true;
+  }
+  assert(rejected, "非轻跑备份应被拒绝");
+});
+
+await test("趋势与分段图表渲染", () => {
+  const weeklyContainer = document.createElement("div");
+  renderWeeklyChart(
+    weeklyContainer,
+    buildWeeklyBuckets(
+      [makeRun("chart", Date.now(), { distanceMeters: 5000 })],
+      new Date(),
+      8,
+    ),
+    20,
+  );
+  assert(Boolean(weeklyContainer.querySelector("svg")), "周趋势应输出 SVG");
+
+  const splitContainer = document.createElement("div");
+  renderSplitChart(splitContainer, [
+    {
+      index: 1,
+      distanceMeters: 1000,
+      durationSeconds: 330,
+      paceSecondsPerKilometer: 330,
+    },
+  ]);
+  assert(Boolean(splitContainer.querySelector(".split-bars")), "分段图应输出");
 });
 
 await test("Manifest 与 Service Worker 资源", async () => {

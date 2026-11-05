@@ -2,7 +2,7 @@
   "id": "./",
   "name": "轻跑",
   "short_name": "轻跑",
-  "description": "专注记录跑步的手机应用。",
+  "description": "专注 GPS 跑步记录、目标与趋势的个人训练日志。",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",

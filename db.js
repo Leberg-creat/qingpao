@@ -1,7 +1,10 @@
+import { DEFAULT_SETTINGS, normalizeRunRecord, normalizeSettings } from "./data-model.js";
+
 const DATABASE_NAME = "qingpao";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const RUN_STORE = "runs";
 const ACTIVE_STORE = "active";
+const SETTINGS_STORE = "settings";
 
 let databasePromise;
 
@@ -41,6 +44,9 @@ export function openDatabase() {
       if (!database.objectStoreNames.contains(ACTIVE_STORE)) {
         database.createObjectStore(ACTIVE_STORE, { keyPath: "key" });
       }
+      if (!database.objectStoreNames.contains(SETTINGS_STORE)) {
+        database.createObjectStore(SETTINGS_STORE, { keyPath: "key" });
+      }
     });
 
     request.addEventListener("success", () => resolve(request.result), { once: true });
@@ -64,7 +70,10 @@ export async function getAllRuns() {
     request.addEventListener("success", () => {
       const cursor = request.result;
       if (cursor) {
-        runs.push(cursor.value);
+        const run = normalizeRunRecord(cursor.value);
+        if (run) {
+          runs.push(run);
+        }
         cursor.continue();
       } else {
         resolve();
@@ -88,6 +97,29 @@ export async function saveRun(run) {
   transaction.objectStore(RUN_STORE).put(run);
   await transactionAsPromise(transaction);
   return run;
+}
+
+export async function saveRuns(runs) {
+  if (!Array.isArray(runs) || runs.length === 0) {
+    return;
+  }
+  const database = await openDatabase();
+  const transaction = database.transaction(RUN_STORE, "readwrite");
+  const store = transaction.objectStore(RUN_STORE);
+  for (const run of runs) {
+    const normalized = normalizeRunRecord(run);
+    if (normalized) {
+      store.put(normalized);
+    }
+  }
+  await transactionAsPromise(transaction);
+}
+
+export async function deleteRun(id) {
+  const database = await openDatabase();
+  const transaction = database.transaction(RUN_STORE, "readwrite");
+  transaction.objectStore(RUN_STORE).delete(id);
+  await transactionAsPromise(transaction);
 }
 
 export async function saveActiveRun(activeRun) {
@@ -117,4 +149,29 @@ export async function clearActiveRun() {
   const transaction = database.transaction(ACTIVE_STORE, "readwrite");
   transaction.objectStore(ACTIVE_STORE).delete("current");
   await transactionAsPromise(transaction);
+}
+
+export async function getSettings() {
+  const database = await openDatabase();
+  const transaction = database.transaction(SETTINGS_STORE, "readonly");
+  const result = await requestAsPromise(
+    transaction.objectStore(SETTINGS_STORE).get("app"),
+  );
+  if (!result) {
+    return normalizeSettings(DEFAULT_SETTINGS);
+  }
+  const { key, ...settings } = result;
+  return normalizeSettings(settings);
+}
+
+export async function saveSettings(settings) {
+  const database = await openDatabase();
+  const normalized = normalizeSettings(settings);
+  const transaction = database.transaction(SETTINGS_STORE, "readwrite");
+  transaction.objectStore(SETTINGS_STORE).put({
+    key: "app",
+    ...normalized,
+  });
+  await transactionAsPromise(transaction);
+  return normalized;
 }

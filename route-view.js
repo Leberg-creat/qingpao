@@ -51,7 +51,7 @@ export function projectRoute(points, width, height, padding = 24) {
     const previous = current.at(-1);
     if (
       previous &&
-      point.timestamp - previous.timestamp > GPS_GAP_SECONDS * 1000
+      (point.segmentStart || point.timestamp - previous.timestamp > GPS_GAP_SECONDS * 1000)
     ) {
       if (current.length > 0) {
         segments.push(current);
