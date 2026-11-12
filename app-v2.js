@@ -18,12 +18,19 @@ import {
   fastestFullSplit,
   goalProgress,
   groupRunsByMonth,
-  monthStats,
   personalRecords,
   rollingPaceSeconds,
   runDurationMilliseconds,
   runPaceSeconds,
 } from "./analytics.js";
+import {
+  achievementDateLabel,
+  calculateAchievements,
+  calendarMonth,
+  calendarMonthBounds,
+  newlyUnlockedAchievements,
+  yearSummary,
+} from "./achievements.js";
 import {
   clearActiveRun,
   deleteRun,
@@ -45,7 +52,7 @@ import {
 import { renderSplitChart, renderWeeklyChart } from "./charts.js";
 import { renderRouteSvg } from "./route-view.js";
 
-const APP_VERSION = "2.0.0";
+const APP_VERSION = "2.1.0";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 const $ = (id) => document.getElementById(id);
@@ -87,8 +94,20 @@ const elements = {
   trendDistanceBar: $("trend-distance-bar"),
   trendCountBar: $("trend-count-bar"),
   weeklyChart: $("weekly-chart"),
-  monthDistance: $("month-distance"),
-  trendStreak: $("trend-streak"),
+  yearSummaryLabel: $("year-summary-label"),
+  yearActiveDays: $("year-active-days"),
+  yearDistance: $("year-distance"),
+  yearRunCount: $("year-run-count"),
+  yearWeekStreak: $("year-week-streak"),
+  calendarPrevButton: $("calendar-prev-button"),
+  calendarNextButton: $("calendar-next-button"),
+  calendarMonthLabel: $("calendar-month-label"),
+  calendarGrid: $("calendar-grid"),
+  calendarTodayButton: $("calendar-today-button"),
+  calendarMonthSummary: $("calendar-month-summary"),
+  calendarDayDetail: $("calendar-day-detail"),
+  achievementCount: $("achievement-count"),
+  achievementGrid: $("achievement-grid"),
   personalRecords: $("personal-records"),
   goalSettingsForm: $("goal-settings-form"),
   weeklyDistanceGoal: $("weekly-distance-goal"),
@@ -113,6 +132,8 @@ const elements = {
   splitChart: $("split-chart"),
   splitList: $("split-list"),
   recordNote: $("record-note"),
+  recordMilestoneBanner: $("record-milestone-banner"),
+  recordMilestoneText: $("record-milestone-text"),
   runView: $("run-view"),
   runKicker: $("run-kicker"),
   runTitle: $("run-title"),
@@ -149,6 +170,9 @@ const state = {
   settingsReturnView: "home",
   recordReturnView: "history",
   currentRecordId: null,
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(),
+  selectedCalendarDate: null,
   activeRun: null,
   liveSplits: [],
   watchId: null,
@@ -423,8 +447,7 @@ function renderTrends() {
   const now = new Date();
   const stats = weeklyStats(state.runs, now);
   const goal = goalProgress(stats, state.settings);
-  const month = monthStats(state.runs, now);
-  const streak = consecutiveCompletedWeeks(state.runs, state.settings, now);
+  const yearly = yearSummary(state.runs, now);
   const records = personalRecords(state.runs);
 
   elements.trendWeekRange.textContent = weekRangeLabel(now);
@@ -432,14 +455,19 @@ function renderTrends() {
   elements.trendWeekCount.textContent = `${stats.count} / ${goal.countGoal} 次`;
   elements.trendDistanceBar.style.width = `${goal.distanceRatio * 100}%`;
   elements.trendCountBar.style.width = `${goal.countRatio * 100}%`;
-  elements.monthDistance.textContent = `${formatDistance(month.distanceMeters)} km`;
-  elements.trendStreak.textContent = `${streak} 周`;
+  elements.yearSummaryLabel.textContent = `${yearly.year} 年`;
+  elements.yearActiveDays.textContent = `${yearly.activeDays} 天`;
+  elements.yearDistance.textContent = `${formatDistance(yearly.distanceMeters, 1)} km`;
+  elements.yearRunCount.textContent = `${yearly.runs} 次`;
+  elements.yearWeekStreak.textContent = `${yearly.longestWeekRun} 周`;
 
   renderWeeklyChart(
     elements.weeklyChart,
     buildWeeklyBuckets(state.runs, now),
     state.settings.weeklyDistanceGoalKm,
   );
+  renderCalendar();
+  renderAchievements();
 
   elements.personalRecords.replaceChildren();
   const rows = [
@@ -493,7 +521,175 @@ function renderTrends() {
   }
 }
 
-function renderRecord(run) {
+function renderCalendar() {
+  const now = new Date();
+  const currentMonthIndex = now.getFullYear() * 12 + now.getMonth();
+  const bounds = calendarMonthBounds(state.runs, now);
+  const earliestIndex = bounds.earliest.year * 12 + bounds.earliest.month;
+  let selectedIndex = state.calendarYear * 12 + state.calendarMonth;
+  selectedIndex = Math.max(earliestIndex, Math.min(currentMonthIndex, selectedIndex));
+  state.calendarYear = Math.floor(selectedIndex / 12);
+  state.calendarMonth = selectedIndex % 12;
+
+  const data = calendarMonth(
+    state.runs,
+    state.calendarYear,
+    state.calendarMonth,
+  );
+  elements.calendarMonthLabel.textContent =
+    `${state.calendarYear} 年 ${state.calendarMonth + 1} 月`;
+  elements.calendarPrevButton.disabled = selectedIndex <= earliestIndex;
+  elements.calendarNextButton.disabled = selectedIndex >= currentMonthIndex;
+  elements.calendarTodayButton.hidden = selectedIndex === currentMonthIndex;
+  elements.calendarMonthSummary.textContent =
+    `${data.summary.activeDays} 个跑步日 · ${data.summary.count} 次 · ${formatDistance(data.summary.distanceMeters)} km`;
+
+  elements.calendarGrid.replaceChildren();
+  for (let index = 0; index < data.firstWeekdayOffset; index += 1) {
+    const blank = document.createElement("span");
+    blank.className = "calendar-blank";
+    blank.setAttribute("aria-hidden", "true");
+    elements.calendarGrid.append(blank);
+  }
+
+  const todayKey = localCalendarDateKey(now);
+  for (const day of data.days) {
+    const date = new Date(state.calendarYear, state.calendarMonth, day.day);
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+    button.dataset.dateKey = day.dateKey;
+    button.disabled = date > todayEnd;
+    button.setAttribute(
+      "aria-label",
+      `${state.calendarMonth + 1} 月 ${day.day} 日${day.hasRuns ? `，${day.count} 次跑步，${formatDistance(day.distanceMeters)} 公里` : "，没有跑步"}`,
+    );
+    if (day.hasRuns) {
+      button.classList.add("has-runs");
+    }
+    if (day.dateKey === todayKey) {
+      button.classList.add("is-today");
+    }
+    if (day.dateKey === state.selectedCalendarDate) {
+      button.classList.add("is-selected");
+      button.setAttribute("aria-current", "date");
+    }
+    const number = document.createElement("span");
+    number.textContent = String(day.day);
+    const dot = document.createElement("span");
+    dot.className = "calendar-run-dot";
+    dot.setAttribute("aria-hidden", "true");
+    button.append(number, dot);
+    elements.calendarGrid.append(button);
+  }
+
+  renderCalendarDayDetail(data);
+}
+
+function localCalendarDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function renderCalendarDayDetail(monthData) {
+  elements.calendarDayDetail.replaceChildren();
+  if (!state.selectedCalendarDate) {
+    const hint = document.createElement("p");
+    hint.className = "calendar-hint";
+    hint.textContent = "选择日期查看当天记录";
+    elements.calendarDayDetail.append(hint);
+    return;
+  }
+  const day = monthData.days.find(
+    (item) => item.dateKey === state.selectedCalendarDate,
+  );
+  if (!day) {
+    state.selectedCalendarDate = null;
+    renderCalendarDayDetail(monthData);
+    return;
+  }
+
+  const heading = document.createElement("div");
+  heading.className = "calendar-detail-heading";
+  const title = document.createElement("strong");
+  title.textContent = `${monthData.month + 1} 月 ${day.day} 日`;
+  const summary = document.createElement("span");
+  summary.textContent = day.hasRuns
+    ? `${day.count} 次 · ${formatDistance(day.distanceMeters)} km`
+    : "没有跑步记录";
+  heading.append(title, summary);
+  elements.calendarDayDetail.append(heading);
+
+  if (!day.hasRuns) {
+    return;
+  }
+  for (const run of day.runs) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-run-item";
+    button.dataset.runId = run.id;
+    const name = document.createElement("strong");
+    name.textContent = `${formatDistance(run.distanceMeters)} km`;
+    const meta = document.createElement("span");
+    meta.textContent = `${formatDuration(runDurationMilliseconds(run))} · ${formatPace(runPaceSeconds(run))} /km`;
+    const arrow = createIcon("i-chevron-right", "icon calendar-run-arrow");
+    button.append(name, meta, arrow);
+    elements.calendarDayDetail.append(button);
+  }
+}
+
+function achievementProgressLabel(achievement) {
+  if (achievement.unit === "km") {
+    return `${formatDistance(achievement.current, 1)} / ${achievement.target / 1000} km`;
+  }
+  if (achievement.id === "three-run-week") {
+    return `单周最多 ${achievement.current} / ${achievement.target} 次`;
+  }
+  if (achievement.id === "four-week-rhythm") {
+    return `连续 ${achievement.current} / ${achievement.target} 周`;
+  }
+  return `${achievement.current} / ${achievement.target} ${achievement.unit}`;
+}
+
+function renderAchievements() {
+  const achievements = calculateAchievements(state.runs);
+  const unlocked = achievements.filter((achievement) => achievement.unlocked);
+  elements.achievementCount.textContent = `${unlocked.length} / ${achievements.length}`;
+  elements.achievementGrid.replaceChildren();
+
+  for (const achievement of achievements) {
+    const card = document.createElement("article");
+    card.className = achievement.unlocked
+      ? "achievement-card is-unlocked"
+      : "achievement-card is-locked";
+    card.dataset.category = achievement.category;
+
+    const iconWrap = document.createElement("span");
+    iconWrap.className = "achievement-icon";
+    iconWrap.append(createIcon(achievement.icon));
+    const title = document.createElement("strong");
+    title.textContent = achievement.title;
+    const description = document.createElement("p");
+    description.textContent = achievement.description;
+    const stateLabel = document.createElement("small");
+    stateLabel.textContent = achievement.unlocked
+      ? achievementDateLabel(achievement.unlockedAt)
+      : achievementProgressLabel(achievement);
+    const track = document.createElement("span");
+    track.className = "achievement-track";
+    const fill = document.createElement("span");
+    fill.style.width = `${achievement.progressRatio * 100}%`;
+    track.append(fill);
+    card.append(iconWrap, title, description, stateLabel, track);
+    elements.achievementGrid.append(card);
+  }
+}
+
+function renderRecord(run, unlockedAchievements = []) {
   if (!run) {
     return;
   }
@@ -501,6 +697,13 @@ function renderRecord(run) {
   const fastestSplit = fastestFullSplit(run);
   const splits = Array.isArray(run.splits) ? run.splits : [];
   state.currentRecordId = run.id;
+  elements.recordMilestoneBanner.hidden = unlockedAchievements.length === 0;
+  elements.recordMilestoneText.textContent =
+    unlockedAchievements.length === 1
+      ? unlockedAchievements[0].title
+      : unlockedAchievements.length > 1
+        ? `本次点亮 ${unlockedAchievements.length} 枚 · ${unlockedAchievements.map((achievement) => achievement.title).join(" · ")}`
+        : "";
 
   elements.recordDate.textContent = longDateFormatter.format(new Date(run.startedAt));
   elements.recordTitle.textContent = formatRunTitle(run);
@@ -601,13 +804,13 @@ function navigateTo(viewName) {
   window.scrollTo({ top: 0 });
 }
 
-function openRecord(run, returnView = "history") {
+function openRecord(run, returnView = "history", options = {}) {
   if (!run) {
     showToast("没有找到这条跑步记录。");
     return;
   }
   state.recordReturnView = returnView;
-  renderRecord(run);
+  renderRecord(run, options.unlockedAchievements || []);
   navigateTo("record");
 }
 
@@ -999,6 +1202,7 @@ async function finishRun() {
   if (!active) {
     return;
   }
+  const runsBeforeSave = state.runs;
   if (active.status === "running") {
     active.elapsedMilliseconds = currentElapsedMilliseconds();
     active.resumeStartedAt = null;
@@ -1052,7 +1256,8 @@ async function finishRun() {
   hideRunScreen();
   await loadData();
   const savedRun = state.runs.find((item) => item.id === run.id) || run;
-  openRecord(savedRun, "home");
+  const unlockedAchievements = newlyUnlockedAchievements(runsBeforeSave, state.runs);
+  openRecord(savedRun, "home", { unlockedAchievements });
   showToast("跑步已保存");
 }
 
@@ -1438,6 +1643,51 @@ function bindEvents() {
   elements.importCancelButton.addEventListener("click", () => {
     state.pendingImport = null;
     elements.importDialog.close();
+  });
+  elements.calendarPrevButton.addEventListener("click", () => {
+    if (elements.calendarPrevButton.disabled) {
+      return;
+    }
+    state.calendarYear =
+      state.calendarMonth === 0 ? state.calendarYear - 1 : state.calendarYear;
+    state.calendarMonth =
+      state.calendarMonth === 0 ? 11 : state.calendarMonth - 1;
+    state.selectedCalendarDate = null;
+    renderCalendar();
+  });
+  elements.calendarNextButton.addEventListener("click", () => {
+    if (elements.calendarNextButton.disabled) {
+      return;
+    }
+    state.calendarYear =
+      state.calendarMonth === 11 ? state.calendarYear + 1 : state.calendarYear;
+    state.calendarMonth =
+      state.calendarMonth === 11 ? 0 : state.calendarMonth + 1;
+    state.selectedCalendarDate = null;
+    renderCalendar();
+  });
+  elements.calendarTodayButton.addEventListener("click", () => {
+    const today = new Date();
+    state.calendarYear = today.getFullYear();
+    state.calendarMonth = today.getMonth();
+    state.selectedCalendarDate = null;
+    renderCalendar();
+  });
+  elements.calendarGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-date-key]");
+    if (!button || button.disabled) {
+      return;
+    }
+    state.selectedCalendarDate = button.dataset.dateKey;
+    renderCalendar();
+  });
+  elements.calendarDayDetail.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-run-id]");
+    if (!button) {
+      return;
+    }
+    const run = state.runs.find((item) => item.id === button.dataset.runId);
+    openRecord(run, "trends");
   });
 
   for (const tab of elements.tabbar.querySelectorAll("[data-tab]")) {

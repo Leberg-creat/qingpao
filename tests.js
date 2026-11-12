@@ -25,6 +25,12 @@ import {
   normalizeRunRecord,
   parseBackup,
 } from "./data-model.js";
+import {
+  calendarMonth,
+  calculateAchievements,
+  newlyUnlockedAchievements,
+  yearSummary,
+} from "./achievements.js";
 import { renderSplitChart, renderWeeklyChart } from "./charts.js";
 import { projectRoute, renderRouteSvg } from "./route-view.js";
 
@@ -294,6 +300,82 @@ await test("损坏备份拒绝", () => {
     rejected = true;
   }
   assert(rejected, "非轻跑备份应被拒绝");
+});
+
+await test("六枚里程碑追溯计算", () => {
+  const monday = new Date(2026, 9, 5, 8, 0, 0).getTime();
+  const runs = [];
+  for (let week = 0; week < 4; week += 1) {
+    for (let index = 0; index < 2; index += 1) {
+      runs.push(
+        makeRun(`milestone-${week}-${index}`, monday + week * 7 * 86_400_000 + index * 3_600_000, {
+          distanceMeters: 5000,
+        }),
+      );
+    }
+  }
+  runs.push(
+    makeRun("milestone-extra-1", monday + 7 * 3_600_000, { distanceMeters: 5000 }),
+    makeRun("milestone-extra-2", monday + 8 * 3_600_000, { distanceMeters: 5000 }),
+  );
+  const achievements = calculateAchievements(runs);
+  assert(achievements.length === 6, "应有六枚里程碑");
+  assert(achievements.every((achievement) => achievement.unlocked), "十次五公里应全部解锁");
+  assert(
+    achievements.find((achievement) => achievement.id === "four-week-rhythm").unlocked,
+    "连续四周应解锁",
+  );
+});
+
+await test("里程碑进度与新增解锁", () => {
+  const before = [
+    makeRun("only-one", new Date(2026, 10, 2, 8, 0, 0).getTime(), {
+      distanceMeters: 3000,
+    }),
+  ];
+  const after = [
+    ...before,
+    ...Array.from({ length: 9 }, (_, index) =>
+      makeRun(`next-${index}`, new Date(2026, 10, 3 + index, 8, 0, 0).getTime(), {
+        distanceMeters: 6000,
+      }),
+    ),
+  ];
+  const progress = calculateAchievements(before);
+  const fresh = newlyUnlockedAchievements(before, after);
+  assert(progress.find((item) => item.id === "first-run").unlocked, "首跑应解锁");
+  assert(
+    progress.find((item) => item.id === "five-kilometers").current === 3000,
+    "单次距离进度",
+  );
+  assert(fresh.some((item) => item.id === "ten-runs"), "新增十次成就");
+  assert(fresh.some((item) => item.id === "fifty-kilometers"), "新增累计距离成就");
+  assert(!fresh.some((item) => item.id === "first-run"), "旧成就不能重复通知");
+});
+
+await test("年度汇总与月历边界", () => {
+  const runs = [
+    makeRun("year-a", new Date(2026, 1, 2, 8, 0, 0).getTime(), {
+      distanceMeters: 4000,
+    }),
+    makeRun("year-b", new Date(2026, 1, 8, 8, 0, 0).getTime(), {
+      distanceMeters: 6000,
+    }),
+    makeRun("old-year", new Date(2025, 11, 31, 8, 0, 0).getTime(), {
+      distanceMeters: 9000,
+    }),
+  ];
+  const summary = yearSummary(runs, new Date(2026, 2, 1, 12, 0, 0));
+  const february = calendarMonth(runs, 2026, 1);
+  assert(summary.year === 2026, "年度");
+  assert(summary.activeDays === 2, "跑步天数");
+  assert(summary.distanceMeters === 10_000, "年度距离");
+  assert(february.days.length === 28, "平年二月天数");
+  assert(february.summary.count === 2, "月跑步次数");
+  assert(
+    february.days.find((day) => day.day === 2).hasRuns,
+    "跑步日应被标记",
+  );
 });
 
 await test("趋势与分段图表渲染", () => {

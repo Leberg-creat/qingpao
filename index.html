@@ -222,8 +222,8 @@
 
         <section class="view" id="trends-view" data-view="trends" aria-labelledby="trends-title">
           <div class="page-intro trends-intro">
-            <p class="eyebrow">趋势</p>
-            <h1 id="trends-title">看见积累</h1>
+            <p class="eyebrow">足迹</p>
+            <h1 id="trends-title">跑过的日子</h1>
           </div>
 
           <section class="trend-goal-band" aria-labelledby="trend-goal-title">
@@ -245,6 +245,31 @@
             </div>
           </section>
 
+          <section class="year-band" aria-labelledby="year-summary-title">
+            <div class="band-heading">
+              <h2 id="year-summary-title">今年</h2>
+              <span id="year-summary-label"></span>
+            </div>
+            <div class="year-metric-grid">
+              <div>
+                <span class="meta-label">跑步天数</span>
+                <strong id="year-active-days">0 天</strong>
+              </div>
+              <div>
+                <span class="meta-label">累计距离</span>
+                <strong id="year-distance">0.0 km</strong>
+              </div>
+              <div>
+                <span class="meta-label">跑步次数</span>
+                <strong id="year-run-count">0 次</strong>
+              </div>
+              <div>
+                <span class="meta-label">最长连续</span>
+                <strong id="year-week-streak">0 周</strong>
+              </div>
+            </div>
+          </section>
+
           <section class="chart-section" aria-labelledby="weekly-chart-title">
             <div class="section-heading">
               <h2 id="weekly-chart-title">最近 8 周</h2>
@@ -253,17 +278,37 @@
             <div class="week-chart" id="weekly-chart"></div>
           </section>
 
-          <section class="trend-stats" aria-label="累计统计">
-            <div>
-              <svg class="icon"><use href="#i-calendar"></use></svg>
-              <span>本月跑量</span>
-              <strong id="month-distance">0.00 km</strong>
+          <section class="calendar-section" aria-labelledby="calendar-title">
+            <div class="calendar-heading">
+              <div>
+                <p class="eyebrow">跑步日历</p>
+                <h2 id="calendar-title">每一个跑步日</h2>
+              </div>
+              <div class="calendar-controls" aria-label="日历月份">
+                <button class="calendar-nav-button" id="calendar-prev-button" type="button" aria-label="上个月">
+                  <svg class="icon"><use href="#i-chevron-right"></use></svg>
+                </button>
+                <span id="calendar-month-label"></span>
+                <button class="calendar-nav-button" id="calendar-next-button" type="button" aria-label="下个月">
+                  <svg class="icon"><use href="#i-chevron-right"></use></svg>
+                </button>
+              </div>
             </div>
-            <div>
-              <svg class="icon"><use href="#i-target"></use></svg>
-              <span>连续达标</span>
-              <strong id="trend-streak">0 周</strong>
+            <div class="calendar-weekdays" aria-hidden="true">
+              <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
             </div>
+            <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="跑步日历"></div>
+            <button class="calendar-today-button" id="calendar-today-button" type="button" hidden>回到本月</button>
+            <div class="calendar-month-summary" id="calendar-month-summary"></div>
+            <div class="calendar-day-detail" id="calendar-day-detail" aria-live="polite"></div>
+          </section>
+
+          <section class="achievement-section" aria-labelledby="achievement-title">
+            <div class="section-heading">
+              <h2 id="achievement-title">里程碑</h2>
+              <span class="section-caption" id="achievement-count">0 / 6</span>
+            </div>
+            <div class="achievement-grid" id="achievement-grid"></div>
           </section>
 
           <section class="records-section" aria-labelledby="records-title">
@@ -355,6 +400,15 @@
               <svg class="icon"><use href="#i-trash"></use></svg>
             </button>
           </div>
+          <div class="record-milestone-banner" id="record-milestone-banner" hidden>
+            <span class="milestone-banner-icon">
+              <svg class="icon"><use href="#i-trophy"></use></svg>
+            </span>
+            <span>
+              <small>新的里程碑</small>
+              <strong id="record-milestone-text"></strong>
+            </span>
+          </div>
           <div class="record-heading">
             <p class="eyebrow" id="record-date"></p>
             <h1 id="record-title">跑步记录</h1>
@@ -406,7 +460,7 @@
         </button>
         <button class="tab" type="button" data-tab="trends">
           <svg class="icon"><use href="#i-chart"></use></svg>
-          <span>趋势</span>
+          <span>足迹</span>
         </button>
       </nav>
     </div>

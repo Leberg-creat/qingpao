@@ -212,6 +212,31 @@
   padding-top: 23px;
 }
 
+.year-band {
+  margin-top: 28px;
+  padding: 21px 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.year-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 20px;
+}
+
+.year-metric-grid > div:nth-child(even) {
+  padding-left: 20px;
+  border-left: 1px solid var(--line);
+}
+
+.year-metric-grid strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
 .trend-goal-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -317,6 +342,394 @@
 
 .records-section {
   margin-top: 22px;
+}
+
+.calendar-section {
+  margin-top: 24px;
+  padding: 22px 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.calendar-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-heading .eyebrow {
+  margin-bottom: 5px;
+}
+
+.calendar-heading h2 {
+  font-size: 17px;
+}
+
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.calendar-controls > span {
+  min-width: 78px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.calendar-nav-button {
+  display: grid;
+  width: 40px;
+  height: 44px;
+  place-items: center;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.calendar-nav-button:disabled {
+  opacity: 0.25;
+}
+
+.calendar-nav-button .icon {
+  width: 17px;
+  height: 17px;
+}
+
+#calendar-prev-button .icon {
+  transform: rotate(180deg);
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  margin-top: 18px;
+  padding-bottom: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.calendar-grid {
+  row-gap: 5px;
+}
+
+.calendar-blank {
+  min-height: 44px;
+}
+
+.calendar-day {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 0 8px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-day:disabled {
+  opacity: 0.22;
+}
+
+.calendar-day.is-today {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.calendar-day.is-selected {
+  background: var(--ink);
+  color: white;
+}
+
+.calendar-run-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.calendar-day.has-runs .calendar-run-dot {
+  background: var(--coral);
+}
+
+.calendar-day.is-selected .calendar-run-dot {
+  background: var(--mint);
+}
+
+.calendar-today-button {
+  display: inline-flex;
+  min-height: 40px;
+  margin: 9px 0 0;
+  padding: 7px 11px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.calendar-today-button[hidden] {
+  display: none;
+}
+
+.calendar-month-summary {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-day-detail {
+  margin-top: 13px;
+}
+
+.calendar-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.calendar-detail-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0 8px;
+}
+
+.calendar-detail-heading strong {
+  font-size: 13px;
+}
+
+.calendar-detail-heading span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.calendar-run-item {
+  display: grid;
+  width: 100%;
+  min-height: 55px;
+  padding: 10px 0;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 9px;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+}
+
+.calendar-run-item strong {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-run-item > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-run-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
+.achievement-section {
+  margin-top: 24px;
+  padding: 22px 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.achievement-card {
+  position: relative;
+  min-height: 170px;
+  padding: 14px 13px 13px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.achievement-card.is-locked {
+  color: #6f7972;
+}
+
+.achievement-card.is-unlocked {
+  border-color: #cce4d5;
+  background: #f8fcf9;
+}
+
+.achievement-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 12px;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf1ed;
+  color: #89928b;
+}
+
+.achievement-card.is-unlocked .achievement-icon {
+  background: var(--mint);
+  color: var(--green);
+}
+
+.achievement-card[data-category="distance"].is-unlocked .achievement-icon {
+  background: var(--coral-soft);
+  color: var(--coral-dark);
+}
+
+.achievement-card[data-category="rhythm"].is-unlocked .achievement-icon {
+  background: #f3eedb;
+  color: #8b6820;
+}
+
+.achievement-icon .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.achievement-card > strong {
+  display: block;
+  font-size: 14px;
+}
+
+.achievement-card p {
+  min-height: 32px;
+  margin: 5px 0 9px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.achievement-card small {
+  display: block;
+  min-height: 15px;
+  color: var(--muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.achievement-card.is-unlocked small {
+  color: var(--green);
+}
+
+.achievement-track {
+  position: absolute;
+  right: 13px;
+  bottom: 12px;
+  left: 13px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5ebe5;
+}
+
+.achievement-track > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--coral);
+  transition: width 400ms ease;
+}
+
+.achievement-card.is-unlocked .achievement-track > span {
+  background: var(--green);
+}
+
+.record-milestone-banner {
+  display: flex;
+  margin-top: 10px;
+  padding: 13px 14px;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #cce4d5;
+  border-radius: 8px;
+  background: var(--mint-soft);
+  color: var(--ink);
+}
+
+.record-milestone-banner[hidden] {
+  display: none;
+}
+
+.milestone-banner-icon {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--green);
+}
+
+.milestone-banner-icon .icon {
+  width: 19px;
+  height: 19px;
+}
+
+.record-milestone-banner > span:last-child {
+  min-width: 0;
+}
+
+.record-milestone-banner small,
+.record-milestone-banner strong {
+  display: block;
+}
+
+.record-milestone-banner small {
+  margin-bottom: 3px;
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.record-milestone-banner strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.route-path-detail {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: route-draw 800ms ease-out forwards;
+}
+
+@keyframes route-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .personal-records {

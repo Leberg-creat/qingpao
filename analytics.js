@@ -90,12 +90,6 @@ export function consecutiveCompletedWeeks(runs, settings, now = new Date()) {
   return streak;
 }
 
-export function monthStats(runs, now = new Date()) {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return statsForRuns(runsBetween(runs, start.getTime(), end.getTime()));
-}
-
 export function buildWeeklyBuckets(runs, now = new Date(), weeks = 8) {
   const currentWeekStart = startOfWeek(now).getTime();
   const buckets = [];

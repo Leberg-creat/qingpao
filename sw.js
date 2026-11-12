@@ -1,4 +1,4 @@
-const CACHE_NAME = "qingpao-shell-v5";
+const CACHE_NAME = "qingpao-shell-v6";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const APP_SHELL = [
   "./styles-v2.css",
   "./app-v2.js",
   "./analytics.js",
+  "./achievements.js",
   "./data-model.js",
   "./charts.js",
   "./db.js",

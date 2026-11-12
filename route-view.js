@@ -122,6 +122,8 @@ export function renderRouteSvg(container, points, options = {}) {
             `${index === 0 ? "M" : "L"} ${point.screenX.toFixed(2)} ${point.screenY.toFixed(2)}`,
         )
         .join(" "),
+      class: live ? "route-path route-path-live" : "route-path route-path-detail",
+      pathLength: 1,
       fill: "none",
       stroke: live ? "#f46343" : "#17865a",
       "stroke-width": live ? 4 : 5,
